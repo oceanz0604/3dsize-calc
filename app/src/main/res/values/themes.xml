@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Material3.DayNight" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your theme here. -->
+    <style name="Theme.Material3.DayNight" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- Use AppCompat as base for the window theme to ensure compatibility -->
     </style>
 </resources>
