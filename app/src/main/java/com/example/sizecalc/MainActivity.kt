@@ -2,6 +2,7 @@ package com.example.sizecalc
 
 import android.Manifest
 import android.os.Bundle
+import android.view.MotionEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -14,10 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.google.ar.core.Anchor
 import com.google.ar.core.Config
-import io.github.sceneview.ar.ARScene
-import io.github.sceneview.ar.node.ArNode
+import com.google.ar.core.HitResult
+import io.github.sceneview.ar.ArSceneView
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -63,23 +65,34 @@ fun SizeCalculatorScreen() {
     var distance by remember { mutableStateOf(0f) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        ARScene(
-            modifier = Modifier.fillMaxSize(),
-            planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL,
-            onTap = { hitResult ->
-                val newAnchor = hitResult.createAnchor()
-                anchors = anchors + newAnchor
-                
-                if (anchors.size >= 2) {
-                    val p1 = anchors[anchors.size - 2].pose
-                    val p2 = anchors[anchors.size - 1].pose
-                    distance = sqrt(
-                        (p1.tx() - p2.tx()).pow(2) +
-                        (p1.ty() - p2.ty()).pow(2) +
-                        (p1.tz() - p2.tz()).pow(2)
-                    )
+        AndroidView(
+            factory = { ctx ->
+                ArSceneView(ctx).apply {
+                    onSessionConfiguration = { session, config ->
+                        config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
+                    }
+                    onTouchEvent = { motionEvent: MotionEvent, hitResult: HitResult? ->
+                        if (motionEvent.action == MotionEvent.ACTION_DOWN && hitResult != null) {
+                            val newAnchor = hitResult.createAnchor()
+                            val currentAnchors = anchors.toMutableList()
+                            currentAnchors.add(newAnchor)
+                            anchors = currentAnchors
+                            
+                            if (anchors.size >= 2) {
+                                val p1 = anchors[anchors.size - 2].pose
+                                val p2 = anchors[anchors.size - 1].pose
+                                distance = sqrt(
+                                    (p1.tx() - p2.tx()).pow(2) +
+                                    (p1.ty() - p2.ty()).pow(2) +
+                                    (p1.tz() - p2.tz()).pow(2)
+                                )
+                            }
+                        }
+                        true
+                    }
                 }
-            }
+            },
+            modifier = Modifier.fillMaxSize()
         )
 
         // UI Overlay
