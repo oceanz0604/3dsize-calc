@@ -87,7 +87,7 @@ fun HomeScreen(
             
             // AR Mode Card
             ModeCard(
-                icon = Icons.Default.ViewInAr,
+                icon = Icons.Default.ThreeDRotation,
                 title = "AR Measure",
                 subtitle = "Live 3D Measurement",
                 description = "Point your camera at objects and tap to measure in real-time using augmented reality.",
