@@ -7,6 +7,7 @@ import android.view.MotionEvent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import com.google.ar.core.ArCoreApk
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -54,22 +55,91 @@ data class ScreenPoint(val x: Float, val y: Float, val index: Int)
 
 @Composable
 fun ARMeasureScreen(onBack: () -> Unit) {
+    val context = LocalContext.current
     var hasPermission by remember { mutableStateOf(false) }
+    var isARCoreAvailable by remember { mutableStateOf<Boolean?>(null) }
+    
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted -> hasPermission = granted }
 
+    // Check ARCore availability
     LaunchedEffect(Unit) {
+        isARCoreAvailable = try {
+            val availability = ArCoreApk.getInstance().checkAvailability(context)
+            availability == ArCoreApk.Availability.SUPPORTED_INSTALLED ||
+            availability == ArCoreApk.Availability.SUPPORTED_APK_TOO_OLD ||
+            availability == ArCoreApk.Availability.SUPPORTED_NOT_INSTALLED
+        } catch (e: Exception) {
+            false
+        }
         launcher.launch(Manifest.permission.CAMERA)
     }
 
-    if (hasPermission) {
-        ARMeasurementContent(onBack = onBack)
-    } else {
-        PermissionRequest(
-            onRequest = { launcher.launch(Manifest.permission.CAMERA) },
-            onBack = onBack
-        )
+    when {
+        isARCoreAvailable == false -> {
+            ARNotSupportedScreen(onBack = onBack)
+        }
+        hasPermission && isARCoreAvailable == true -> {
+            ARMeasurementContent(onBack = onBack)
+        }
+        else -> {
+            PermissionRequest(
+                onRequest = { launcher.launch(Manifest.permission.CAMERA) },
+                onBack = onBack
+            )
+        }
+    }
+}
+
+@Composable
+private fun ARNotSupportedScreen(onBack: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier
+                .padding(16.dp)
+                .align(Alignment.TopStart)
+        ) {
+            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+        }
+        
+        Column(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Default.Warning,
+                contentDescription = null,
+                modifier = Modifier.size(80.dp),
+                tint = WarningYellow
+            )
+            Spacer(Modifier.height(24.dp))
+            Text(
+                "AR Not Supported",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Your device doesn't support ARCore. Please use Quick Photo or Precision Photo mode instead.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+            Spacer(Modifier.height(24.dp))
+            Button(onClick = onBack) {
+                Icon(Icons.Default.ArrowBack, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Go Back")
+            }
+        }
     }
 }
 
@@ -132,6 +202,7 @@ private fun ARMeasurementContent(onBack: () -> Unit) {
     var arSceneView by remember { mutableStateOf<ARSceneView?>(null) }
     var screenWidth by remember { mutableStateOf(0f) }
     var screenHeight by remember { mutableStateOf(0f) }
+    var arError by remember { mutableStateOf<String?>(null) }
 
     val objectDetector = remember { ObjectDetectorHelper() }
 
@@ -139,21 +210,43 @@ private fun ARMeasurementContent(onBack: () -> Unit) {
         onDispose { objectDetector.close() }
     }
 
+    // Show error if AR failed
+    if (arError != null) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
+                Icon(Icons.Default.Error, contentDescription = null, modifier = Modifier.size(64.dp), tint = WarningYellow)
+                Spacer(Modifier.height(16.dp))
+                Text("AR Error", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(8.dp))
+                Text(arError ?: "Unknown error", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = onBack) { Text("Go Back") }
+            }
+        }
+        return
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         // AR View
         AndroidView(
             factory = { ctx ->
-                ARSceneView(ctx).apply {
-                    arSceneView = this
-                    
-                    sessionConfiguration = { session, config ->
-                        config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
-                        config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
-                        config.focusMode = Config.FocusMode.AUTO
-                    }
+                try {
+                    ARSceneView(ctx).apply {
+                        arSceneView = this
+                        
+                        sessionConfiguration = { session, config ->
+                            config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
+                            config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
+                            config.focusMode = Config.FocusMode.AUTO
+                        }
 
-                    // Disable or minimize plane rendering dots
-                    planeRenderer.isVisible = false
+                        // Disable or minimize plane rendering dots
+                        planeRenderer.isVisible = false
 
                     onSessionUpdated = { session, frame ->
                         currentFrame = frame
@@ -287,6 +380,11 @@ private fun ARMeasurementContent(onBack: () -> Unit) {
                     })
 
                     setOnTouchListener { _, event -> gestureDetector.onTouchEvent(event) }
+                }
+                } catch (e: Exception) {
+                    arError = e.message ?: "Failed to initialize AR"
+                    // Return a simple view as fallback
+                    android.view.View(ctx)
                 }
             },
             modifier = Modifier.fillMaxSize()
