@@ -14,6 +14,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.aismartmeasure.app.navigation.Screen
+import com.aismartmeasure.app.ui.screens.ARMeasureScreen
 import com.aismartmeasure.app.ui.screens.HomeScreen
 import com.aismartmeasure.app.ui.theme.AISmartMeasureTheme
 
@@ -45,14 +46,20 @@ fun AppNavigation() {
         composable(Screen.Home.route) {
             HomeScreen(
                 onARMeasureClick = { 
-                    Toast.makeText(context, "AR Mode clicked", Toast.LENGTH_SHORT).show()
+                    navController.navigate(Screen.ARMeasure.route)
                 },
                 onQuickPhotoClick = { 
-                    Toast.makeText(context, "Quick Photo clicked", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Quick Photo - Coming soon", Toast.LENGTH_SHORT).show()
                 },
                 onPrecisionPhotoClick = { 
-                    Toast.makeText(context, "Precision Photo clicked", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Precision Photo - Coming soon", Toast.LENGTH_SHORT).show()
                 }
+            )
+        }
+        
+        composable(Screen.ARMeasure.route) {
+            ARMeasureScreen(
+                onBack = { navController.popBackStack() }
             )
         }
     }
