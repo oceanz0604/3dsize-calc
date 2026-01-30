@@ -21,7 +21,13 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.google.ar.core.Anchor
 import com.google.ar.core.Config
 import com.google.ar.core.Frame
+import com.google.ar.core.Pose
 import io.github.sceneview.ar.ARSceneView
+import io.github.sceneview.ar.node.ARCameraNode
+import io.github.sceneview.node.Node
+import io.github.sceneview.math.Position
+import io.github.sceneview.math.Rotation
+import io.github.sceneview.math.Scale
 import kotlin.math.pow
 import kotlin.math.sqrt
 import java.util.Locale
@@ -64,10 +70,21 @@ fun CameraPermissionWrapper(content: @Composable () -> Unit) {
 @Composable
 fun SizeCalculatorScreen() {
     val context = LocalContext.current
-    // Use mutableStateListOf to prevent stale closures in the AndroidView factory
     val anchors = remember { mutableStateListOf<Anchor>() }
-    var distance by remember { mutableStateOf(0f) }
     var currentFrame by remember { mutableStateOf<Frame?>(null) }
+    
+    // Dimension states
+    var length by remember { mutableStateOf(0f) }
+    var width by remember { mutableStateOf(0f) }
+    var height by remember { mutableStateOf(0f) }
+
+    val statusText = when (anchors.size) {
+        0 -> "Step 1: Tap first bottom corner"
+        1 -> "Step 2: Tap second bottom corner (Length)"
+        2 -> "Step 3: Tap adjacent bottom corner (Width)"
+        3 -> "Step 4: Tap a top corner (Height)"
+        else -> "Measurement Complete!"
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
@@ -83,6 +100,8 @@ fun SizeCalculatorScreen() {
                     val gestureDetector = GestureDetector(ctx, object : GestureDetector.SimpleOnGestureListener() {
                         override fun onSingleTapUp(e: MotionEvent): Boolean {
                             val frame = currentFrame ?: return false
+                            if (anchors.size >= 4) return false
+
                             val hitResults = frame.hitTest(e)
                             val firstHit = hitResults.firstOrNull()
                             
@@ -90,18 +109,14 @@ fun SizeCalculatorScreen() {
                                 val newAnchor = firstHit.createAnchor()
                                 anchors.add(newAnchor)
                                 
-                                if (anchors.size >= 2) {
-                                    val p1 = anchors[anchors.size - 2].pose
-                                    val p2 = anchors[anchors.size - 1].pose
-                                    distance = sqrt(
-                                        (p1.tx() - p2.tx()).pow(2) +
-                                        (p1.ty() - p2.ty()).pow(2) +
-                                        (p1.tz() - p2.tz()).pow(2)
-                                    )
-                                    Toast.makeText(ctx, "Point 2 set! Distance: ${String.format(Locale.US, "%.2f", distance)}m", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    Toast.makeText(ctx, "Point 1 set! Tap another spot.", Toast.LENGTH_SHORT).show()
+                                // Logic for calculations
+                                when (anchors.size) {
+                                    2 -> length = calculateDist(anchors[0].pose, anchors[1].pose)
+                                    3 -> width = calculateDist(anchors[1].pose, anchors[2].pose)
+                                    4 -> height = calculateDist(anchors[2].pose, anchors[3].pose)
                                 }
+                                
+                                Toast.makeText(ctx, "Point ${anchors.size} set", Toast.LENGTH_SHORT).show()
                             }
                             return true
                         }
@@ -129,21 +144,34 @@ fun SizeCalculatorScreen() {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = when {
-                            anchors.isEmpty() -> "Tap floor to set first point"
-                            anchors.size == 1 -> "Point 1 set. Tap second point."
-                            else -> "Distance: ${String.format(Locale.US, "%.2f", distance)}m"
-                        },
-                        color = Color.White,
-                        style = MaterialTheme.typography.headlineSmall
+                        text = statusText,
+                        color = Color.Cyan,
+                        style = MaterialTheme.typography.titleMedium
                     )
                     
-                    Spacer(modifier = Modifier.height(8.dp))
+                    if (anchors.size >= 2) {
+                        Text("L: ${String.format(Locale.US, "%.2f", length)}m", color = Color.White)
+                    }
+                    if (anchors.size >= 3) {
+                        Text("W: ${String.format(Locale.US, "%.2f", width)}m", color = Color.White)
+                    }
+                    if (anchors.size >= 4) {
+                        Text("H: ${String.format(Locale.US, "%.2f", height)}m", color = Color.White)
+                        Text(
+                            "Vol: ${String.format(Locale.US, "%.4f", length * width * height)} m³", 
+                            color = Color.Yellow,
+                            style = MaterialTheme.typography.headlineSmall
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
                     
                     Row {
                         Button(onClick = { 
                             anchors.clear()
-                            distance = 0f
+                            length = 0f
+                            width = 0f
+                            height = 0f
                         }) {
                             Text("Reset")
                         }
@@ -152,7 +180,7 @@ fun SizeCalculatorScreen() {
                         
                         Button(
                             onClick = { 
-                                ReportGenerator.generateAndShareReport(context, distance, 0f) 
+                                ReportGenerator.generateAndShareReport(context, length, width, height) 
                             },
                             enabled = anchors.size >= 2
                         ) {
@@ -163,4 +191,12 @@ fun SizeCalculatorScreen() {
             }
         }
     }
+}
+
+fun calculateDist(p1: Pose, p2: Pose): Float {
+    return sqrt(
+        (p1.tx() - p2.tx()).pow(2) +
+        (p1.ty() - p2.ty()).pow(2) +
+        (p1.tz() - p2.tz()).pow(2)
+    )
 }
