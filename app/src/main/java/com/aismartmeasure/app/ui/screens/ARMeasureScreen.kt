@@ -53,7 +53,7 @@ import java.util.Locale
 data class ScreenPoint(val x: Float, val y: Float, val index: Int)
 
 @Composable
-fun MeasureScreen() {
+fun ARMeasureScreen(onBack: () -> Unit) {
     var hasPermission by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -64,21 +64,36 @@ fun MeasureScreen() {
     }
 
     if (hasPermission) {
-        MeasurementContent()
+        ARMeasurementContent(onBack = onBack)
     } else {
-        PermissionRequest { launcher.launch(Manifest.permission.CAMERA) }
+        PermissionRequest(
+            onRequest = { launcher.launch(Manifest.permission.CAMERA) },
+            onBack = onBack
+        )
     }
 }
 
 @Composable
-private fun PermissionRequest(onRequest: () -> Unit) {
+private fun PermissionRequest(onRequest: () -> Unit, onBack: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentAlignment = Alignment.Center
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        // Back button
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier
+                .padding(16.dp)
+                .align(Alignment.TopStart)
+        ) {
+            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+        }
+        
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
             Icon(
                 imageVector = Icons.Default.CameraAlt,
                 contentDescription = null,
@@ -105,7 +120,7 @@ private fun PermissionRequest(onRequest: () -> Unit) {
 }
 
 @Composable
-private fun MeasurementContent() {
+private fun ARMeasurementContent(onBack: () -> Unit) {
     val context = LocalContext.current
     val anchors = remember { mutableStateListOf<Anchor>() }
     var currentFrame by remember { mutableStateOf<Frame?>(null) }
@@ -288,6 +303,26 @@ private fun MeasurementContent() {
         // Detection overlay
         if (isAutoMode && detectedRect != null) {
             DetectionOverlay(rect = detectedRect!!)
+        }
+
+        // Back button
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(top = 40.dp, start = 8.dp)
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = Color.Black.copy(alpha = 0.5f)
+            ) {
+                Icon(
+                    Icons.Default.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White,
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
         }
 
         // Status indicator
