@@ -869,3 +869,12 @@ private fun calculateMultiViewMeasurement(captures: List<CaptureData>): Measurem
         height = estimatedDepth
     )
 }
+
+/**
+ * Calculate Euclidean distance between two corner points.
+ */
+private fun calculateDistance(p1: CornerPoint, p2: CornerPoint): Float {
+    val dx = p2.x - p1.x
+    val dy = p2.y - p1.y
+    return sqrt(dx.pow(2) + dy.pow(2))
+}
