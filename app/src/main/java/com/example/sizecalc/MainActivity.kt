@@ -2,7 +2,6 @@ package com.example.sizecalc
 
 import android.Manifest
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -19,9 +18,6 @@ import com.google.ar.core.Anchor
 import com.google.ar.core.Config
 import io.github.sceneview.ar.ARScene
 import io.github.sceneview.ar.node.ArNode
-import io.github.sceneview.ar.rememberARCameraNode
-import io.github.sceneview.rememberEngine
-import io.github.sceneview.rememberNodes
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -63,30 +59,17 @@ fun CameraPermissionWrapper(content: @Composable () -> Unit) {
 @Composable
 fun SizeCalculatorScreen() {
     val context = LocalContext.current
-    val engine = rememberEngine()
-    val nodes = rememberNodes()
     var anchors by remember { mutableStateOf(listOf<Anchor>()) }
     var distance by remember { mutableStateOf(0f) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         ARScene(
             modifier = Modifier.fillMaxSize(),
-            engine = engine,
-            childNodes = nodes,
-            onSessionConfiguration = { session, config ->
-                config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
-                config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
-            },
-            onTapAr = { hitResult ->
+            planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL,
+            onTap = { hitResult ->
                 val newAnchor = hitResult.createAnchor()
                 anchors = anchors + newAnchor
                 
-                // Add a small visual node at the tap location
-                val node = ArNode(engine).apply {
-                    anchor = newAnchor
-                }
-                nodes.add(node)
-
                 if (anchors.size >= 2) {
                     val p1 = anchors[anchors.size - 2].pose
                     val p2 = anchors[anchors.size - 1].pose
@@ -124,7 +107,6 @@ fun SizeCalculatorScreen() {
                     Row {
                         Button(onClick = { 
                             anchors = emptyList()
-                            nodes.clear()
                             distance = 0f
                         }) {
                             Text("Reset")
