@@ -1,7 +1,6 @@
 package com.aismartmeasure.app
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,13 +8,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.aismartmeasure.app.navigation.Screen
 import com.aismartmeasure.app.ui.screens.ARMeasureScreen
 import com.aismartmeasure.app.ui.screens.HomeScreen
+import com.aismartmeasure.app.ui.screens.QuickPhotoScreen
+import com.aismartmeasure.app.ui.screens.PrecisionPhotoScreen
 import com.aismartmeasure.app.ui.theme.AISmartMeasureTheme
 
 class MainActivity : ComponentActivity() {
@@ -37,7 +37,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
-    val context = LocalContext.current
     
     NavHost(
         navController = navController,
@@ -45,22 +44,22 @@ fun AppNavigation() {
     ) {
         composable(Screen.Home.route) {
             HomeScreen(
-                onARMeasureClick = { 
-                    navController.navigate(Screen.ARMeasure.route)
-                },
-                onQuickPhotoClick = { 
-                    Toast.makeText(context, "Quick Photo - Coming soon", Toast.LENGTH_SHORT).show()
-                },
-                onPrecisionPhotoClick = { 
-                    Toast.makeText(context, "Precision Photo - Coming soon", Toast.LENGTH_SHORT).show()
-                }
+                onARMeasureClick = { navController.navigate(Screen.ARMeasure.route) },
+                onQuickPhotoClick = { navController.navigate(Screen.QuickPhoto.route) },
+                onPrecisionPhotoClick = { navController.navigate(Screen.PrecisionPhoto.route) }
             )
         }
         
         composable(Screen.ARMeasure.route) {
-            ARMeasureScreen(
-                onBack = { navController.popBackStack() }
-            )
+            ARMeasureScreen(onBack = { navController.popBackStack() })
+        }
+        
+        composable(Screen.QuickPhoto.route) {
+            QuickPhotoScreen(onBack = { navController.popBackStack() })
+        }
+        
+        composable(Screen.PrecisionPhoto.route) {
+            PrecisionPhotoScreen(onBack = { navController.popBackStack() })
         }
     }
 }
