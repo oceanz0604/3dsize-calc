@@ -1,15 +1,27 @@
 package com.example.sizecalc
 
+import android.Manifest
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.google.ar.core.Anchor
-import com.google.ar.core.Pose
+import com.google.ar.core.Config
+import io.github.sceneview.ar.ARScene
+import io.github.sceneview.ar.node.ArNode
+import io.github.sceneview.ar.rememberARCameraNode
+import io.github.sceneview.rememberEngine
+import io.github.sceneview.rememberNodes
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -18,11 +30,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    SizeCalculatorScreen()
+                Surface(modifier = Modifier.fillMaxSize()) {
+                    CameraPermissionWrapper {
+                        SizeCalculatorScreen()
+                    }
                 }
             }
         }
@@ -30,65 +41,108 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun SizeCalculatorScreen() {
-    var distanceText by remember { mutableStateOf("Tap two points to measure") }
-    var points by remember { mutableStateOf(listOf<Pose>()) }
+fun CameraPermissionWrapper(content: @Composable () -> Unit) {
+    var hasPermission by remember { mutableStateOf(false) }
+    val launcher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> hasPermission = granted }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.Bottom
-    ) {
-        // In a real app, this would be the AR SurfaceView
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-        ) {
-            Text("AR Camera View Placeholder\n(Point at object and tap corners)")
+    LaunchedEffect(Unit) {
+        launcher.launch(Manifest.permission.CAMERA)
+    }
+
+    if (hasPermission) {
+        content()
+    } else {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Camera permission is required for AR")
         }
+    }
+}
 
-        Card(
-            modifier = Modifier.fillMaxWidth()
+@Composable
+fun SizeCalculatorScreen() {
+    val context = LocalContext.current
+    val engine = rememberEngine()
+    val nodes = rememberNodes()
+    var anchors by remember { mutableStateOf(listOf<Anchor>()) }
+    var distance by remember { mutableStateOf(0f) }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        ARScene(
+            modifier = Modifier.fillMaxSize(),
+            engine = engine,
+            childNodes = nodes,
+            onSessionConfiguration = { session, config ->
+                config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
+                config.lightEstimationMode = Config.LightEstimationMode.ENVIRONMENTAL_HDR
+            },
+            onTapAr = { hitResult ->
+                val newAnchor = hitResult.createAnchor()
+                anchors = anchors + newAnchor
+                
+                // Add a small visual node at the tap location
+                val node = ArNode(engine).apply {
+                    anchor = newAnchor
+                }
+                nodes.add(node)
+
+                if (anchors.size >= 2) {
+                    val p1 = anchors[anchors.size - 2].pose
+                    val p2 = anchors[anchors.size - 1].pose
+                    distance = sqrt(
+                        (p1.tx() - p2.tx()).pow(2) +
+                        (p1.ty() - p2.ty()).pow(2) +
+                        (p1.tz() - p2.tz()).pow(2)
+                    )
+                }
+            }
+        )
+
+        // UI Overlay
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(24.dp)
+                .fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = distanceText,
-                    style = MaterialTheme.typography.headlineSmall
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.Black.copy(alpha = 0.7f)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
-                Row {
-                    Button(
-                        onClick = { 
-                            points = emptyList()
-                            distanceText = "Cleared"
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        text = if (anchors.size < 2) "Tap floor to start measuring" 
+                               else "Distance: ${String.format("%.2f", distance)}m",
+                        color = Color.White,
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Row {
+                        Button(onClick = { 
+                            anchors = emptyList()
+                            nodes.clear()
+                            distance = 0f
+                        }) {
+                            Text("Reset")
                         }
-                    ) {
-                        Text("Clear")
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = { 
-                            // shareReport(distanceText) 
-                        },
-                        enabled = points.size >= 2
-                    ) {
-                        Text("Share Report")
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        Button(
+                            onClick = { 
+                                ReportGenerator.generateAndShareReport(context, distance, 0f) 
+                            },
+                            enabled = anchors.size >= 2
+                        ) {
+                            Text("Share Report")
+                        }
                     }
                 }
             }
         }
     }
-}
-
-/**
- * Calculates Euclidean distance between two 3D points in meters
- */
-fun calculateDistance(pose1: Pose, pose2: Pose): Float {
-    val dx = pose1.tx() - pose2.tx()
-    val dy = pose1.ty() - pose2.ty()
-    val dz = pose1.tz() - pose2.tz()
-    return sqrt(dx.pow(2) + dy.pow(2) + dz.pow(2))
 }
