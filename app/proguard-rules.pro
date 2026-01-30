@@ -15,3 +15,19 @@
 # Keep Filament classes
 -keep class com.google.android.filament.** { *; }
 -dontwarn com.google.android.filament.**
+
+# Keep CameraX classes
+-keep class androidx.camera.** { *; }
+-dontwarn androidx.camera.**
+
+# Keep Compose classes
+-keep class androidx.compose.** { *; }
+-dontwarn androidx.compose.**
+
+# Keep Navigation classes
+-keep class androidx.navigation.** { *; }
+-dontwarn androidx.navigation.**
+
+# Keep Coil classes
+-keep class coil.** { *; }
+-dontwarn coil.**
