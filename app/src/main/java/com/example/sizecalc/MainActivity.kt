@@ -4,6 +4,7 @@ import android.Manifest
 import android.os.Bundle
 import android.view.GestureDetector
 import android.view.MotionEvent
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -63,7 +64,8 @@ fun CameraPermissionWrapper(content: @Composable () -> Unit) {
 @Composable
 fun SizeCalculatorScreen() {
     val context = LocalContext.current
-    var anchors by remember { mutableStateOf(listOf<Anchor>()) }
+    // Use mutableStateListOf to prevent stale closures in the AndroidView factory
+    val anchors = remember { mutableStateListOf<Anchor>() }
     var distance by remember { mutableStateOf(0f) }
     var currentFrame by remember { mutableStateOf<Frame?>(null) }
 
@@ -83,11 +85,10 @@ fun SizeCalculatorScreen() {
                             val frame = currentFrame ?: return false
                             val hitResults = frame.hitTest(e)
                             val firstHit = hitResults.firstOrNull()
+                            
                             if (firstHit != null) {
                                 val newAnchor = firstHit.createAnchor()
-                                val currentAnchors = anchors.toMutableList()
-                                currentAnchors.add(newAnchor)
-                                anchors = currentAnchors
+                                anchors.add(newAnchor)
                                 
                                 if (anchors.size >= 2) {
                                     val p1 = anchors[anchors.size - 2].pose
@@ -97,6 +98,9 @@ fun SizeCalculatorScreen() {
                                         (p1.ty() - p2.ty()).pow(2) +
                                         (p1.tz() - p2.tz()).pow(2)
                                     )
+                                    Toast.makeText(ctx, "Point 2 set! Distance: ${String.format(Locale.US, "%.2f", distance)}m", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(ctx, "Point 1 set! Tap another spot.", Toast.LENGTH_SHORT).show()
                                 }
                             }
                             return true
@@ -125,8 +129,11 @@ fun SizeCalculatorScreen() {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = if (anchors.size < 2) "Tap floor to start measuring" 
-                               else "Distance: ${String.format(Locale.US, "%.2f", distance)}m",
+                        text = when {
+                            anchors.isEmpty() -> "Tap floor to set first point"
+                            anchors.size == 1 -> "Point 1 set. Tap second point."
+                            else -> "Distance: ${String.format(Locale.US, "%.2f", distance)}m"
+                        },
                         color = Color.White,
                         style = MaterialTheme.typography.headlineSmall
                     )
@@ -135,7 +142,7 @@ fun SizeCalculatorScreen() {
                     
                     Row {
                         Button(onClick = { 
-                            anchors = emptyList()
+                            anchors.clear()
                             distance = 0f
                         }) {
                             Text("Reset")

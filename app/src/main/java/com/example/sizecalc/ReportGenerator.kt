@@ -11,11 +11,13 @@ import java.util.*
 object ReportGenerator {
 
     fun generateAndShareReport(context: Context, width: Float, height: Float) {
+        val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
         val fileName = "Dimension_Report_${System.currentTimeMillis()}.txt"
+        
         val reportContent = """
             3D SIZE CALCULATOR REPORT
             -------------------------
-            Date: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}
+            Date: $dateStr
             
             OBJECT DIMENSIONS:
             Width: ${String.format(Locale.US, "%.2f", width)} meters
@@ -28,6 +30,7 @@ object ReportGenerator {
             val file = File(context.cacheDir, fileName)
             FileOutputStream(file).use { outputStream ->
                 outputStream.write(reportContent.toByteArray()) 
+                outputStream.flush() // Ensure data is written
             }
 
             val uri = FileProvider.getUriForFile(
@@ -36,10 +39,13 @@ object ReportGenerator {
                 file
             )
 
+            // Include the summary in the text extra so it's visible immediately in apps like WhatsApp/Email
+            val shareSummary = "Object Dimension Report ($dateStr):\nWidth: ${String.format(Locale.US, "%.2f", width)}m\nHeight: ${String.format(Locale.US, "%.2f", height)}m"
+
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/plain"
                 putExtra(Intent.EXTRA_SUBJECT, "Object Dimension Report")
-                putExtra(Intent.EXTRA_TEXT, "Here is the dimension report for the object.")
+                putExtra(Intent.EXTRA_TEXT, shareSummary)
                 putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
