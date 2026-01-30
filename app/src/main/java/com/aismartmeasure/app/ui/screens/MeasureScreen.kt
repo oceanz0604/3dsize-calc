@@ -347,9 +347,16 @@ private fun PointMarkersOverlay(points: List<ScreenPoint>, measurement: Measurem
     )
     
     Canvas(modifier = Modifier.fillMaxSize()) {
-        val paint = android.graphics.Paint().apply {
+        val whitePaint = android.graphics.Paint().apply {
             textSize = 36f
-            color = android.graphics.Color.WHITE
+            setColor(android.graphics.Color.WHITE)
+            textAlign = android.graphics.Paint.Align.CENTER
+            isFakeBoldText = true
+            isAntiAlias = true
+        }
+        val blackPaint = android.graphics.Paint().apply {
+            textSize = 36f
+            setColor(android.graphics.Color.BLACK)
             textAlign = android.graphics.Paint.Align.CENTER
             isFakeBoldText = true
             isAntiAlias = true
@@ -400,7 +407,7 @@ private fun PointMarkersOverlay(points: List<ScreenPoint>, measurement: Measurem
                     labelText,
                     midX,
                     midY + 10f,
-                    paint
+                    whitePaint
                 )
             }
         }
@@ -435,7 +442,7 @@ private fun PointMarkersOverlay(points: List<ScreenPoint>, measurement: Measurem
                 point.index.toString(),
                 point.x,
                 point.y + 12f,
-                paint.apply { color = android.graphics.Color.BLACK }
+                blackPaint
             )
         }
     }
