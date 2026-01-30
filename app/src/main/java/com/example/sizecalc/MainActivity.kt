@@ -19,7 +19,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.google.ar.core.Anchor
 import com.google.ar.core.Config
 import com.google.ar.core.HitResult
-import io.github.sceneview.ar.ArSceneView
+import io.github.sceneview.ar.ARSceneView
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -67,8 +67,8 @@ fun SizeCalculatorScreen() {
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
             factory = { ctx ->
-                ArSceneView(ctx).apply {
-                    onSessionConfiguration = { session, config ->
+                ARSceneView(ctx).apply {
+                    sessionConfiguration = { session, config ->
                         config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
                     }
                     onTouchEvent = { motionEvent: MotionEvent, hitResult: HitResult? ->
