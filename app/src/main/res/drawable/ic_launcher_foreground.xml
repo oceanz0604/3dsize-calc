@@ -1,10 +1,29 @@
-<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    
+    <!-- Background: Modern Blue Gradient-like solid -->
+    <path
+        android:fillColor="#1A73E8"
+        android:pathData="M0,0h108v108h-108z" />
+        
+    <!-- Cube Icon -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M30,30h48v48h-48z" />
+        android:pathData="M54,25 L24,40 L24,70 L54,85 L84,70 L84,40 Z" />
+    <path
+        android:fillColor="#E8F0FE"
+        android:pathData="M54,25 L84,40 L54,55 L24,40 Z" />
+    <path
+        android:fillColor="#D2E3FC"
+        android:pathData="M54,55 L84,40 L84,70 L54,85 Z" />
+        
+    <!-- Measurement Lines (Ruler markings) -->
+    <path
+        android:strokeColor="#1A73E8"
+        android:strokeWidth="1"
+        android:pathData="M30,45 L35,45 M30,50 L38,50 M30,55 L35,55 M30,60 L38,60 M30,65 L35,65" />
+        
 </vector>
