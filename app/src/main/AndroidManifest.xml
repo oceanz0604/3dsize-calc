@@ -16,7 +16,10 @@
         android:theme="@style/Theme.Material3.DayNight"
         tools:targetApi="31">
         
-        <meta-data android:name="com.google.ar.core" android:value="required" />
+        <meta-data
+            android:name="com.google.ar.core"
+            android:value="required"
+            tools:replace="android:value" />
 
         <activity
             android:name=".MainActivity"
