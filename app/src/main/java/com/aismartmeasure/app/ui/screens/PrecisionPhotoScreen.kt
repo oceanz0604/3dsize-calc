@@ -248,39 +248,47 @@ private fun MultiAngleCapture(
     val lifecycleOwner = LocalLifecycleOwner.current
     var imageCapture by remember { mutableStateOf<ImageCapture?>(null) }
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
+    var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
+    val previewView = remember { PreviewView(context) }
+
+    // Setup camera with proper lifecycle
+    DisposableEffect(lifecycleOwner) {
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+        cameraProviderFuture.addListener({
+            try {
+                cameraProvider = cameraProviderFuture.get()
+                
+                val preview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(previewView.surfaceProvider)
+                }
+                
+                imageCapture = ImageCapture.Builder()
+                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                    .build()
+                
+                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+                
+                cameraProvider?.unbindAll()
+                cameraProvider?.bindToLifecycle(
+                    lifecycleOwner,
+                    cameraSelector,
+                    preview,
+                    imageCapture
+                )
+            } catch (e: Exception) {
+                Toast.makeText(context, "Camera error: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }, ContextCompat.getMainExecutor(context))
+        
+        onDispose {
+            cameraProvider?.unbindAll()
+            cameraExecutor.shutdown()
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
-            factory = { ctx ->
-                PreviewView(ctx).apply {
-                    val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-                    cameraProviderFuture.addListener({
-                        val cameraProvider = cameraProviderFuture.get()
-                        
-                        val preview = Preview.Builder().build().also {
-                            it.setSurfaceProvider(surfaceProvider)
-                        }
-                        
-                        imageCapture = ImageCapture.Builder()
-                            .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
-                            .build()
-                        
-                        val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-                        
-                        try {
-                            cameraProvider.unbindAll()
-                            cameraProvider.bindToLifecycle(
-                                lifecycleOwner,
-                                cameraSelector,
-                                preview,
-                                imageCapture
-                            )
-                        } catch (e: Exception) {
-                            Toast.makeText(ctx, "Camera failed to start", Toast.LENGTH_SHORT).show()
-                        }
-                    }, ContextCompat.getMainExecutor(ctx))
-                }
-            },
+            factory = { previewView },
             modifier = Modifier.fillMaxSize()
         )
         
