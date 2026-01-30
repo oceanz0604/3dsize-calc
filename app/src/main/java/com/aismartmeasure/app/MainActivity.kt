@@ -1,28 +1,20 @@
 package com.aismartmeasure.app
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.aismartmeasure.app.navigation.Screen
+import com.aismartmeasure.app.ui.screens.HomeScreen
 import com.aismartmeasure.app.ui.theme.AISmartMeasureTheme
 
 class MainActivity : ComponentActivity() {
@@ -32,9 +24,9 @@ class MainActivity : ComponentActivity() {
             AISmartMeasureTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.background
                 ) {
-                    TestScreenWithTheme()
+                    AppNavigation()
                 }
             }
         }
@@ -42,45 +34,26 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun TestScreenWithTheme() {
-    var counter by remember { mutableStateOf(0) }
+fun AppNavigation() {
+    val navController = rememberNavController()
+    val context = LocalContext.current
     
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Home.route
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp)
-        ) {
-            Text(
-                "AI Smart Measure",
-                color = MaterialTheme.colorScheme.onPrimary,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold
+        composable(Screen.Home.route) {
+            HomeScreen(
+                onARMeasureClick = { 
+                    Toast.makeText(context, "AR Mode clicked", Toast.LENGTH_SHORT).show()
+                },
+                onQuickPhotoClick = { 
+                    Toast.makeText(context, "Quick Photo clicked", Toast.LENGTH_SHORT).show()
+                },
+                onPrecisionPhotoClick = { 
+                    Toast.makeText(context, "Precision Photo clicked", Toast.LENGTH_SHORT).show()
+                }
             )
-            
-            Spacer(Modifier.height(16.dp))
-            
-            Text(
-                "Theme is working!",
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                fontSize = 18.sp
-            )
-            
-            Spacer(Modifier.height(8.dp))
-            
-            Text(
-                "Counter: $counter",
-                color = MaterialTheme.colorScheme.onPrimary,
-                fontSize = 24.sp
-            )
-            
-            Spacer(Modifier.height(24.dp))
-            
-            Button(onClick = { counter++ }) {
-                Text("Tap Me")
-            }
         }
     }
 }
