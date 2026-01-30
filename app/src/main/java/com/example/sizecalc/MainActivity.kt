@@ -18,8 +18,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.ar.core.Anchor
 import com.google.ar.core.Config
-import com.google.ar.core.HitResult
 import io.github.sceneview.ar.ARSceneView
+import io.github.sceneview.ar.arcore.ArHitResult
+import io.github.sceneview.collision.HitResult
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -73,19 +74,22 @@ fun SizeCalculatorScreen() {
                     }
                     onTouchEvent = { motionEvent: MotionEvent, hitResult: HitResult? ->
                         if (motionEvent.action == MotionEvent.ACTION_DOWN && hitResult != null) {
-                            val newAnchor = hitResult.createAnchor()
-                            val currentAnchors = anchors.toMutableList()
-                            currentAnchors.add(newAnchor)
-                            anchors = currentAnchors
-                            
-                            if (anchors.size >= 2) {
-                                val p1 = anchors[anchors.size - 2].pose
-                                val p2 = anchors[anchors.size - 1].pose
-                                distance = sqrt(
-                                    (p1.tx() - p2.tx()).pow(2) +
-                                    (p1.ty() - p2.ty()).pow(2) +
-                                    (p1.tz() - p2.tz()).pow(2)
-                                )
+                            val arHitResult = hitResult as? ArHitResult
+                            val newAnchor = arHitResult?.createAnchor()
+                            if (newAnchor != null) {
+                                val currentAnchors = anchors.toMutableList()
+                                currentAnchors.add(newAnchor)
+                                anchors = currentAnchors
+                                
+                                if (anchors.size >= 2) {
+                                    val p1 = anchors[anchors.size - 2].pose
+                                    val p2 = anchors[anchors.size - 1].pose
+                                    distance = sqrt(
+                                        (p1.tx() - p2.tx()).pow(2) +
+                                        (p1.ty() - p2.ty()).pow(2) +
+                                        (p1.tz() - p2.tz()).pow(2)
+                                    )
+                                }
                             }
                         }
                         true
@@ -110,7 +114,7 @@ fun SizeCalculatorScreen() {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = if (anchors.size < 2) "Tap floor to start measuring" 
-                               else "Distance: ${String.format("%.2f", distance)}m",
+                               else "Distance: ${java.lang.String.format(java.util.Locale.US, "%.2f", distance)}m",
                         color = Color.White,
                         style = MaterialTheme.typography.headlineSmall
                     )
