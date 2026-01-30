@@ -3,7 +3,6 @@ package com.aismartmeasure.app
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -11,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -19,28 +20,33 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aismartmeasure.app.ui.theme.AISmartMeasureTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MinimalTestScreen()
+            AISmartMeasureTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.primary
+                ) {
+                    TestScreenWithTheme()
+                }
+            }
         }
     }
 }
 
 @Composable
-fun MinimalTestScreen() {
+fun TestScreenWithTheme() {
     var counter by remember { mutableStateOf(0) }
     
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF1A73E8)),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -49,7 +55,7 @@ fun MinimalTestScreen() {
         ) {
             Text(
                 "AI Smart Measure",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onPrimary,
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -57,8 +63,8 @@ fun MinimalTestScreen() {
             Spacer(Modifier.height(16.dp))
             
             Text(
-                "App is working!",
-                color = Color.White.copy(alpha = 0.8f),
+                "Theme is working!",
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                 fontSize = 18.sp
             )
             
@@ -66,7 +72,7 @@ fun MinimalTestScreen() {
             
             Text(
                 "Counter: $counter",
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onPrimary,
                 fontSize = 24.sp
             )
             
@@ -75,14 +81,6 @@ fun MinimalTestScreen() {
             Button(onClick = { counter++ }) {
                 Text("Tap Me")
             }
-            
-            Spacer(Modifier.height(32.dp))
-            
-            Text(
-                "If you see this screen, the basic app is working.\nThe issue is in the full UI code.",
-                color = Color.White.copy(alpha = 0.6f),
-                fontSize = 12.sp
-            )
         }
     }
 }
