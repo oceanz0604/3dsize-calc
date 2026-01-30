@@ -2,6 +2,7 @@ package com.example.sizecalc
 
 import android.Manifest
 import android.os.Bundle
+import android.view.GestureDetector
 import android.view.MotionEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -18,11 +19,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.ar.core.Anchor
 import com.google.ar.core.Config
+import com.google.ar.core.Frame
 import io.github.sceneview.ar.ARSceneView
-import io.github.sceneview.ar.arcore.ArHitResult
-import io.github.sceneview.collision.HitResult
 import kotlin.math.pow
 import kotlin.math.sqrt
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,19 +65,26 @@ fun SizeCalculatorScreen() {
     val context = LocalContext.current
     var anchors by remember { mutableStateOf(listOf<Anchor>()) }
     var distance by remember { mutableStateOf(0f) }
+    var currentFrame by remember { mutableStateOf<Frame?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
             factory = { ctx ->
                 ARSceneView(ctx).apply {
-                    sessionConfiguration = { session, config ->
+                    sessionConfiguration = { _, config ->
                         config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
                     }
-                    onTouchEvent = { motionEvent: MotionEvent, hitResult: HitResult? ->
-                        if (motionEvent.action == MotionEvent.ACTION_DOWN && hitResult != null) {
-                            val arHitResult = hitResult as? ArHitResult
-                            val newAnchor = arHitResult?.createAnchor()
-                            if (newAnchor != null) {
+                    onSessionUpdated = { _, frame ->
+                        currentFrame = frame
+                    }
+                    
+                    val gestureDetector = GestureDetector(ctx, object : GestureDetector.SimpleOnGestureListener() {
+                        override fun onSingleTapUp(e: MotionEvent): Boolean {
+                            val frame = currentFrame ?: return false
+                            val hitResults = frame.hitTest(e)
+                            val firstHit = hitResults.firstOrNull()
+                            if (firstHit != null) {
+                                val newAnchor = firstHit.createAnchor()
                                 val currentAnchors = anchors.toMutableList()
                                 currentAnchors.add(newAnchor)
                                 anchors = currentAnchors
@@ -91,8 +99,12 @@ fun SizeCalculatorScreen() {
                                     )
                                 }
                             }
+                            return true
                         }
-                        true
+                    })
+
+                    setOnTouchListener { _, event ->
+                        gestureDetector.onTouchEvent(event)
                     }
                 }
             },
@@ -114,7 +126,7 @@ fun SizeCalculatorScreen() {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = if (anchors.size < 2) "Tap floor to start measuring" 
-                               else "Distance: ${java.lang.String.format(java.util.Locale.US, "%.2f", distance)}m",
+                               else "Distance: ${String.format(Locale.US, "%.2f", distance)}m",
                         color = Color.White,
                         style = MaterialTheme.typography.headlineSmall
                     )
